@@ -22,3 +22,5 @@ Only two dependencies not specified in `pyproject.toml`: `CMake` and `gcc` (for 
 Author: Zachary Levonian <levon003@umn.edu>
 
 Canonical link to this repository: https://github.com/levon003/biomarker-case-study
+
+The repository is currently private, but can be made public on request. (The raw data is not included, although snippets of the data would be visible in the notebook outputs.)

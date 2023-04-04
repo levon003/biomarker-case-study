@@ -33,9 +33,30 @@ class DataLoader:
             institution_list = json.load(infile)
         patient_profiles = DataLoader.get_patient_profiles(institution_list)
         self.pdf = pd.DataFrame(patient_profiles)
-        self.pdf.set_index("patient_id")
+        self.pdf = self.pdf.set_index("patient_id")
+        self._normalize_patient_dataframe()
 
         self.is_data_loaded = True
+
+    def _normalize_patient_dataframe(self):
+        """Normalize some columns in the patient dataframe.
+        This implementation is based on the data exploration (see notebook).
+        """
+        # normalize capitalization
+        capitalization_normalize_cols = ["demographics_race", "status_smoking_status", "demographics_gender"]
+        for column in capitalization_normalize_cols:
+            nonna_idx = self.pdf[column].notna()
+            self.pdf.loc[nonna_idx, column] = self.pdf.loc[nonna_idx, column].map(str.lower)
+
+        # convert to single "time since diagnosis" column
+        has_days = self.pdf["status_days_since_diagnosis"].notna()
+        assert (
+            self.pdf["status_days_since_diagnosis"].notna() == self.pdf["status_months_since_diagnosis"].isna()
+        ).all()
+        self.pdf.loc[has_days, "status_months_since_diagnosis"] = (
+            self.pdf.loc[has_days, "status_days_since_diagnosis"] * 30
+        )
+        assert self.pdf["status_months_since_diagnosis"].isna().sum() == 0
 
     def get_target_dataframe(self) -> pd.DataFrame:
         if not self.is_data_loaded:
