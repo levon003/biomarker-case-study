@@ -4,7 +4,8 @@ Modeling with patient biomarker data.
 
 ## Summary
 
-Read the notebooks.
+The description of the modeling is in the data modeling notebook, located at `notebook/DataModeling.ipynb`.
+Visualizations of the raw data, including both figures and tables, are located in the data exploration notebook (`notebook/DataExploration.ipynb`).
 
 ## Data
 
@@ -13,9 +14,8 @@ Data is assumed to be present in the `data` folder.
 
 ## Build and dependencies
 
-Just `make install`.
-
-Only two dependencies not specified in `pyproject.toml`: `CMake` and `gcc` (for LightGBM). Install both as appropriate, e.g. on Mac OS: `brew install gcc` and `brew install cmake`.
+Just `make install`. Requires Python 3.10 or greater.
+Poetry is used for managing Python dependencies, and will be installed if it isn't already available.
 
 ## Links
 
