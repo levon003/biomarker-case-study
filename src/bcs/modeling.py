@@ -5,6 +5,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import sklearn.compose
+import sklearn.decomposition
 import sklearn.ensemble
 import sklearn.metrics
 import sklearn.preprocessing
@@ -13,6 +14,10 @@ from pandas.api.types import CategoricalDtype
 
 @dataclass
 class ModelingConfig:
+    """Dataclass to manage experimental configurations.
+    In a larger application, could be used as an interface to an experiment tracker like MLFlow or used to load/store JSON configs.
+    """
+
     experiment_name: str = "default"
     patient_feature_action: str = "keep"
     biomarker_feature_action: str = "keep"
@@ -29,6 +34,8 @@ class ModelingConfig:
     cv_column: str = "institution_name"
     target_column: str = "target_label"
 
+    # see: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingClassifier.html
+    # these values are the HistGradientBoostingClassifier defaults
     gbm_learning_rate: float = 0.1
     gbm_max_iter: int = 100
     gbm_max_leaf_nodes: int = 31
@@ -61,7 +68,7 @@ class ModelEvaluator:
         if self.config.biomarker_feature_action == "exclude":
             feature_columns = [col for col in feature_columns if not col.startswith("BM")]
         elif self.config.biomarker_feature_action == "svd":
-            raise NotImplementedError("No reduction yet.")
+            pass  # we need to perform SVD within the train/test split, so we need the raw BM features
         elif self.config.biomarker_feature_action == "keep":
             pass  # leave biomarker columns as-is
         else:
@@ -74,7 +81,7 @@ class ModelEvaluator:
     def train_and_evaluate(self):
         model = GbmModel(self.config)
         model.fit_eval(self.df, self.feature_columns, self.categorical_columns)
-        return model.metrics_list
+        return model
 
     @staticmethod
     def convert_to_categorical_columns(df: pd.DataFrame, feature_columns: list[str]) -> list[str]:
@@ -91,16 +98,49 @@ class ModelEvaluator:
 class GbmModel:
     def __init__(self, config: ModelingConfig):
         self.config = config
-        self.metrics_list = []
 
-    def fit_eval(self, df: pd.DataFrame, feature_columns: list[str], categorical_columns: list[str]):
+    def fit_eval(self, df: pd.DataFrame, all_feature_columns: list[str], categorical_columns: list[str]):
+        """Fit this GBM model and evaluate it.
+        Holds out according to config.cv_column.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Dataframe with all of the feature_columns
+        all_feature_columns : list[str]
+            Columns to use in df for modeling.
+        categorical_columns : list[str]
+            A subset of all_feature_columns indicating categorical variables.
+        """
+        y_true_all = df.target_label.copy().rename("y_true")
+        y_pred_all = df.target_label.copy().rename("y_pred")
+        y_score_all = df.target_label.astype("float").rename("y_score")
+
+        biomarker_columns = [col for col in all_feature_columns if col.startswith("BM")]
+        nonbiomarker_columns = [col for col in all_feature_columns if col not in biomarker_columns]
+
+        metrics_list = []
+        feature_columns = all_feature_columns[:]
         for iname, valid_df in df.groupby(self.config.cv_column):
-            column_encoder = GbmModel.get_encoder()
             train_df = df[~df.index.isin(valid_df.index)]
             assert len(train_df) + len(valid_df) == len(df)
+            if self.config.biomarker_feature_action == "svd":
+                pca = sklearn.decomposition.PCA(n_components=self.config.biomarker_svd_n_components)
+                train_transformed = pca.fit_transform(train_df[biomarker_columns].fillna(0))
+                valid_transformed = pca.transform(valid_df[biomarker_columns].fillna(0))
+                train_pca_df = pd.DataFrame(train_transformed, index=train_df.index).rename(
+                    columns=lambda col: f"BM_pca{col}",
+                )
+                valid_pca_df = pd.DataFrame(valid_transformed, index=valid_df.index).rename(
+                    columns=lambda col: f"BM_pca{col}",
+                )
+                feature_columns = nonbiomarker_columns + list(train_pca_df.columns)
+                train_df = pd.merge(train_df, train_pca_df, how="left", left_index=True, right_index=True)
+                valid_df = pd.merge(valid_df, valid_pca_df, how="left", left_index=True, right_index=True)
+
+            column_encoder = GbmModel.get_encoder()
             X_train = column_encoder.fit_transform(train_df[feature_columns])
             X_valid = column_encoder.transform(valid_df[feature_columns])
-
             X_train = pd.DataFrame(X_train, index=train_df.index, columns=column_encoder.get_feature_names_out())
             X_valid = pd.DataFrame(X_valid, index=valid_df.index, columns=column_encoder.get_feature_names_out())
 
@@ -118,13 +158,25 @@ class GbmModel:
             y_score = clf.predict_proba(X_valid)[:, 1]
             y_true = valid_df.target_label
 
+            y_pred_all[valid_df.index] = y_pred
+            y_score_all[valid_df.index] = y_score
+
             metrics = {
                 "experiment_name": self.config.experiment_name,
                 "institution_name": iname,
                 **GbmModel.get_metrics(y_true, y_pred, y_score),
             }
-            self.metrics_list.append(metrics)
-        return self.metrics_list
+            metrics_list.append(metrics)
+        metrics = {
+            "experiment_name": self.config.experiment_name,
+            "institution_name": "All",
+            **GbmModel.get_metrics(y_true_all, y_pred_all, y_score_all),
+        }
+        metrics_list.append(metrics)
+        # following sklearn conventions, we only define these attributes after the model is fit
+        self.metrics_ = metrics_list
+        self.preds_ = y_pred_all
+        self.scores_ = y_score_all
 
     @staticmethod
     def get_metrics(y_true, y_pred, y_score):
