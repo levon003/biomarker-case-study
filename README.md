@@ -1,15 +1,20 @@
-# Tempus Biomarker Case Study
+# Biomarker Case Study
 
-Modeling with patient biomarker data.
+[![License](https://img.shields.io/github/license/levon003/biomarker-case-study)](https://github.com/levon003/biomarker-case-study/blob/main/LICENSE)
+
+
+Modeling with patient biomarker data. This repository is a self-contained demonstration of my approach to exploring a dataset and modeling for a binary classification task with missing data.
+
+Author: [Zachary Levonian](https://github.com/levon003)
 
 ## Summary
 
-The description of the modeling is in the data modeling notebook, located at `notebook/DataModeling.ipynb`.
-Visualizations of the raw data, including both figures and tables, are located in the data exploration notebook (`notebook/DataExploration.ipynb`).
+A good entrypoint to this analyisis is [the Jupyter notebook that trains and evaluates models to predict the binary outcome](/notebook/DataModeling.ipynb). Initial exploration and description of the data is in [this Jupyter notebook](/notebook/DataExploration.ipynb).
+
 
 ## Data
 
-Synthetic patient data provided by [Tempus](https://www.tempus.com).
+Synthetic patient data provided by [Tempus](https://www.tempus.com). I don't have permission to share the data, although you can see excerpts in the analysis notebooks.
 Data is assumed to be present in the `data` folder.
 
 ## Build and dependencies
@@ -17,10 +22,11 @@ Data is assumed to be present in the `data` folder.
 Just `make install`. Requires Python 3.10 or greater.
 Poetry is used for managing Python dependencies, and will be installed if it isn't already available.
 
-## Links
+## Repository structure
 
-Author: Zachary Levonian <levon003@umn.edu>
+The directory layout is:
 
-Canonical link to this repository: https://github.com/levon003/biomarker-case-study
-
-The repository is currently private, but can be made public on request. (The raw data is not included, although snippets of the data would be visible in the notebook outputs.)
+- `notebook` contains the analysis notebooks.
+- `src` contains the `bcs` Python package with helper functions and classes to support the analysis.
+- `data` is presumed to be the location of the input data... see the Data section for more details.
+- `figures` contains any images produced within the analysis notebooks.

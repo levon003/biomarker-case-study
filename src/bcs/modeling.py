@@ -45,6 +45,15 @@ class ModelingConfig:
 
 class ModelEvaluator:
     def __init__(self, config: ModelingConfig, df: pd.DataFrame):
+        """Create a ModelEvaluator with the given configuration and data.
+
+        Parameters
+        ----------
+        config : ModelingConfig
+            The modeling configuration.
+        df : pd.DataFrame
+            The data, at a minimum containing config.cv_column and config.target_column.
+        """
         self.config = config
         self.logger = logging.getLogger("bcs.modeling.ModelEvaluator")
 
@@ -54,6 +63,13 @@ class ModelEvaluator:
         self.categorical_columns = ModelEvaluator.convert_to_categorical_columns(self.df, self.feature_columns)
 
     def _identify_feature_columns(self):
+        """Identifies features columns based on the expected column names and the configuration.
+
+        Raises
+        ------
+        ValueError
+            If the configuration provided results in no identified features.
+        """
         feature_columns = [
             col
             for col in self.df.columns
@@ -79,6 +95,13 @@ class ModelEvaluator:
         self.feature_columns = feature_columns
 
     def train_and_evaluate(self):
+        """Trains and evaluates a model using the current configuration.
+
+        Returns
+        -------
+        GbmModel
+            A newly-fit GbmModel
+        """
         model = GbmModel(self.config)
         model.fit_eval(self.df, self.feature_columns, self.categorical_columns)
         return model
@@ -96,6 +119,19 @@ class ModelEvaluator:
 
 
 class GbmModel:
+    """GBM model, fit using scikit-learn's HistGradientBoostingClassifier.
+    Evaluation uses cross-validation, stratified by config.cv_column
+
+    Attributes
+    ----------
+    metrics_ : list[dict]
+        List of metrics. Available after fit.
+    preds_ : np.array
+        Hold-out predictions. Available after fit.
+    scores_ : np.array
+        Hold-out scores. Available after fit.
+    """
+
     def __init__(self, config: ModelingConfig):
         self.config = config
 
