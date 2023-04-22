@@ -3,13 +3,13 @@
 [![License](https://img.shields.io/github/license/levon003/biomarker-case-study)](https://github.com/levon003/biomarker-case-study/blob/main/LICENSE)
 
 
-Modeling with patient biomarker data. This repository is a self-contained demonstration of my approach to exploring a dataset and modeling for a binary classification task with missing data.
+Modeling with patient biomarker data. This repository is a self-contained demonstration of my approach to exploring a dataset and building a machine learning model for a binary classification task with missing data.
 
 Author: [Zachary Levonian](https://github.com/levon003)
 
 ## Summary
 
-A good entrypoint to this analyisis is [the Jupyter notebook that trains and evaluates models to predict the binary outcome](/notebook/DataModeling.ipynb). Initial exploration and description of the data is in [this Jupyter notebook](/notebook/DataExploration.ipynb).
+A good entrypoint to this analysis is [the Jupyter notebook that trains and evaluates models to predict the binary outcome](/notebook/DataModeling.ipynb). Initial exploration and description of the data is in [this Jupyter notebook](/notebook/DataExploration.ipynb).
 
 
 ## Data
